@@ -1,0 +1,6 @@
+{
+  "name": "Simulador Batida na Porta - Entra e Sai Rafael",
+  "description": "Um aplicativo para simular batidas em uma porta com um contador interativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
