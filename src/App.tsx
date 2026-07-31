@@ -117,7 +117,7 @@ export default function App() {
       <div className="grid grid-cols-1 md:grid-cols-12 md:grid-rows-6 gap-6 flex-grow">
         
         {/* Statistics Column */}
-        <div className="md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-between">
+        <div className="order-2 md:order-1 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Total de Batidas</span>
             <motion.div
@@ -138,7 +138,7 @@ export default function App() {
         </div>
 
         {/* Main Interaction Card (The Door) */}
-        <div className="md:col-span-6 md:row-span-6 bg-stone-900 border-2 border-stone-800 rounded-[40px] relative overflow-hidden flex flex-col items-center justify-center group min-h-[400px]">
+        <div className="order-1 md:order-2 md:col-span-6 md:row-span-6 bg-stone-900 border-2 border-stone-800 rounded-[32px] md:rounded-[40px] relative overflow-hidden flex flex-col items-center justify-center group min-h-[400px] py-10 md:py-0">
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #ffffff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
           
           <motion.button
@@ -147,27 +147,27 @@ export default function App() {
             transition={{ duration: 0.2 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
-            className={`w-64 h-96 border-4 rounded-lg flex flex-col items-center justify-center relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-stone-700/50 z-10 transition-colors duration-300 bg-stone-900 border-stone-800`}
+            className={`w-52 h-80 md:w-64 md:h-96 border-4 rounded-lg flex flex-col items-center justify-center relative cursor-pointer focus:outline-none focus:ring-4 focus:ring-stone-700/50 z-10 transition-colors duration-300 bg-stone-900 border-stone-800`}
             aria-label="Bater na porta"
           >
-            <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-4 h-12 rounded-full transition-colors duration-300 bg-stone-800`}></div>
+            <div className={`absolute right-3 md:right-4 top-1/2 -translate-y-1/2 w-3 h-10 md:w-4 md:h-12 rounded-full transition-colors duration-300 bg-stone-800`}></div>
             <motion.div 
               animate={isKnocking ? { y: [0, 15, 0], rotate: [0, -10, 0] } : { y: 0, rotate: 0 }}
               transition={{ duration: 0.2, ease: "easeInOut" }}
               className={`mb-4 transition-colors duration-300 text-stone-700 group-hover:text-stone-600`}
             >
-              <Hand className="w-24 h-24" strokeWidth={1} />
+              <Hand className="w-16 h-16 md:w-24 md:h-24" strokeWidth={1} />
             </motion.div>
-            <div className="px-6 py-2 bg-stone-100 text-stone-950 font-bold rounded-full text-xs uppercase tracking-widest transition-colors group-hover:bg-white shadow-sm">Bater na Porta</div>
+            <div className="px-4 py-1.5 md:px-6 md:py-2 bg-stone-100 text-stone-950 font-bold rounded-full text-[10px] md:text-xs uppercase tracking-widest transition-colors group-hover:bg-white shadow-sm">Bater</div>
           </motion.button>
           
-          <div className="absolute bottom-8 left-0 right-0 text-center pointer-events-none">
-            <p className="text-stone-500 text-[10px] uppercase tracking-[0.3em] font-medium">Pressione [ESPAÇO] ou Clique</p>
+          <div className="absolute bottom-6 md:bottom-8 left-0 right-0 text-center pointer-events-none">
+            <p className="text-stone-500 text-[8px] md:text-[10px] uppercase tracking-[0.3em] font-medium px-4">Pressione [ESPAÇO] ou Clique</p>
           </div>
         </div>
 
         {/* History/Log Card */}
-        <div className="md:col-span-3 md:row-span-6 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col">
+        <div className="order-4 md:order-3 md:col-span-3 md:row-span-6 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col">
           <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-4">Registro Recente</span>
           <div className="space-y-4 flex-grow overflow-hidden flex flex-col">
             {history.map((entry) => (
@@ -188,7 +188,7 @@ export default function App() {
         </div>
 
         {/* Settings/Mode Card */}
-        <div className="md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-center">
+        <div className="order-3 md:order-4 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-center">
           <div>
             <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Intensidade</span>
             <div className="flex gap-2 mt-4 justify-between items-end h-12">
