@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Hand } from 'lucide-react';
+import { doc, onSnapshot, updateDoc, increment, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { db, initializeStats } from './firebase';
 
 type HistoryEntry = {
   id: string;
@@ -16,19 +18,54 @@ export default function App() {
   const [intensity, setIntensity] = useState<number>(3); // 0 to 4
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  const handleKnock = useCallback(() => {
-    setKnocks((prev) => prev + 1);
+  useEffect(() => {
+    initializeStats().catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const statsRef = doc(db, 'doorStats', 'global');
+    const unsubscribeStats = onSnapshot(statsRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setKnocks(docSnap.data().totalKnocks || 0);
+      }
+    });
+
+    const historyRef = collection(db, 'knockHistory');
+    const q = query(historyRef, orderBy('timestamp', 'desc'), limit(5));
+    const unsubscribeHistory = onSnapshot(q, (snapshot) => {
+      const historyData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        intensityLabel: doc.data().intensityLabel,
+        time: doc.data().time
+      }));
+      setHistory(historyData);
+    });
+
+    return () => {
+      unsubscribeStats();
+      unsubscribeHistory();
+    };
+  }, []);
+
+  const handleKnock = useCallback(async () => {
     setIsKnocking(true);
     
-    setHistory((prev) => {
+    try {
+      const statsRef = doc(db, 'doorStats', 'global');
+      await updateDoc(statsRef, {
+        totalKnocks: increment(1)
+      });
+
       const now = new Date();
-      const newEntry: HistoryEntry = {
-        id: crypto.randomUUID(),
+      const historyRef = collection(db, 'knockHistory');
+      await addDoc(historyRef, {
         intensityLabel: INTENSITY_LABELS[intensity],
-        time: now.toLocaleTimeString('pt-BR', { hour12: false })
-      };
-      return [newEntry, ...prev].slice(0, 5); // Keep last 5 entries
-    });
+        time: now.toLocaleTimeString('pt-BR', { hour12: false }),
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error("Error saving knock:", error);
+    }
 
     // Reset animation state shortly after
     setTimeout(() => setIsKnocking(false), 150);

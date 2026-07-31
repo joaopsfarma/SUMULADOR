@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidDoorStats(data) {
+      return data.keys().hasAll(['totalKnocks']) && 
+             data.totalKnocks is number;
+    }
+
+    function isValidKnockHistory(data) {
+      return data.keys().hasAll(['intensityLabel', 'time', 'timestamp']) &&
+             data.intensityLabel is string && data.intensityLabel.size() <= 20 &&
+             data.time is string && data.time.size() <= 20 &&
+             data.timestamp is number;
+    }
+
+    match /doorStats/{docId} {
+      allow read: if true;
+      allow create: if isValidId(docId) && isValidDoorStats(incoming()) && incoming().keys().size() == 1;
+      allow update: if isValidId(docId) && isValidDoorStats(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['totalKnocks']);
+      allow delete: if false;
+    }
+
+    match /knockHistory/{docId} {
+      allow read: if true;
+      allow create: if isValidId(docId) && isValidKnockHistory(incoming()) && incoming().keys().size() == 3;
+      allow update: if false; // history is immutable
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "rules": {
+    "databases": {
+      "default": {
+        "collections": [
+          {
+            "name": "doorStats",
+            "match": "doorStats/{docId}",
+            "fields": [
+              {
+                "name": "totalKnocks",
+                "type": "number",
+                "required": true
+              }
+            ],
+            "permissions": {
+              "read": "true",
+              "write": "true"
+            }
+          },
+          {
+            "name": "knockHistory",
+            "match": "knockHistory/{docId}",
+            "fields": [
+              {
+                "name": "intensityLabel",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "time",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "timestamp",
+                "type": "timestamp",
+                "required": true
+              }
+            ],
+            "permissions": {
+              "read": "true",
+              "create": "true",
+              "update": "false",
+              "delete": "false"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
