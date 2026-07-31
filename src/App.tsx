@@ -47,28 +47,29 @@ export default function App() {
     };
   }, []);
 
-  const handleKnock = useCallback(async () => {
+  const handleKnock = useCallback(() => {
     setIsKnocking(true);
     
+    // UI animation timeout
+    setTimeout(() => setIsKnocking(false), 150);
+    
+    // Background Firestore updates (Fire-and-forget to keep UI responsive)
     try {
       const statsRef = doc(db, 'doorStats', 'global');
-      await updateDoc(statsRef, {
+      updateDoc(statsRef, {
         totalKnocks: increment(1)
-      });
+      }).catch(console.error);
 
       const now = new Date();
       const historyRef = collection(db, 'knockHistory');
-      await addDoc(historyRef, {
+      addDoc(historyRef, {
         intensityLabel: INTENSITY_LABELS[intensity],
         time: now.toLocaleTimeString('pt-BR', { hour12: false }),
         timestamp: Date.now()
-      });
+      }).catch(console.error);
     } catch (error) {
-      console.error("Error saving knock:", error);
+      console.error("Error triggering knock:", error);
     }
-
-    // Reset animation state shortly after
-    setTimeout(() => setIsKnocking(false), 150);
   }, [intensity]);
 
   useEffect(() => {
