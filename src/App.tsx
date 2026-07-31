@@ -28,6 +28,8 @@ export default function App() {
       if (docSnap.exists()) {
         setKnocks(docSnap.data().totalKnocks || 0);
       }
+    }, (error) => {
+      console.warn("Failed to listen to stats:", error);
     });
 
     const historyRef = collection(db, 'knockHistory');
@@ -39,6 +41,8 @@ export default function App() {
         time: doc.data().time
       }));
       setHistory(historyData);
+    }, (error) => {
+      console.warn("Failed to listen to history:", error);
     });
 
     return () => {
