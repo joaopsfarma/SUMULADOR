@@ -1,13 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { Hand } from 'lucide-react';
-import { doc, onSnapshot, setDoc, increment, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { Hand, BarChart3, Clock, LayoutDashboard } from 'lucide-react';
+import { doc, onSnapshot, setDoc, increment, collection, addDoc, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 type HistoryEntry = {
   id: string;
   intensityLabel: string;
   time: string;
+};
+
+type DailyStat = {
+  date: string;
+  totalKnocks: number;
 };
 
 const INTENSITY_LABELS = ['Muito Suave', 'Suave', 'Média', 'Forte', 'Muito Forte'];
@@ -25,8 +31,9 @@ export default function App() {
   const [isKnocking, setIsKnocking] = useState(false);
   const [intensity, setIntensity] = useState<number>(3); // 0 to 4
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
   const [todayId, setTodayId] = useState(getTodayDateString());
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'stats'>('dashboard');
 
   // Check for day change every minute
   useEffect(() => {
@@ -66,6 +73,46 @@ export default function App() {
       unsubscribeHistory();
     };
   }, [todayId]);
+
+  // Fetch daily stats for the graph
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      const fetchStats = async () => {
+        try {
+          const statsCollectionRef = collection(db, 'doorStats');
+          const statsSnapshot = await getDocs(statsCollectionRef);
+          
+          let statsData: DailyStat[] = statsSnapshot.docs.map(doc => ({
+            date: doc.id, // ID is the date string like "2024-05-20"
+            totalKnocks: doc.data().totalKnocks || 0
+          }));
+          
+          // Sort by date ascending
+          statsData.sort((a, b) => a.date.localeCompare(b.date));
+          
+          // Format dates to DD/MM
+          statsData = statsData.map(stat => {
+            const parts = stat.date.split('-');
+            if (parts.length === 3) {
+              return { ...stat, date: `${parts[2]}/${parts[1]}` };
+            }
+            return stat;
+          });
+          
+          // Keep only the last 7 days
+          if (statsData.length > 7) {
+            statsData = statsData.slice(statsData.length - 7);
+          }
+          
+          setDailyStats(statsData);
+        } catch (error) {
+          console.error("Error fetching daily stats:", error);
+        }
+      };
+      
+      fetchStats();
+    }
+  }, [activeTab, knocks]); // Re-fetch when knocks change if looking at stats
 
   const handleKnock = useCallback(() => {
     setIsKnocking(true);
@@ -124,7 +171,7 @@ export default function App() {
         </div>
         <div className="flex gap-4 items-center">
           <div className="px-3 py-1 border border-stone-800 rounded-full text-[10px] uppercase tracking-widest text-stone-500 font-semibold">
-            Sessão Ativa: 12m 44s
+            Sessão Ativa
           </div>
           <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
         </div>
@@ -136,7 +183,9 @@ export default function App() {
         {/* Statistics Column */}
         <div className={`order-2 md:order-1 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex-col justify-between ${activeTab === 'dashboard' ? 'flex' : 'hidden md:flex'}`}>
           <div>
-            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Batidas de Hoje</span>
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest flex items-center gap-2">
+               Batidas de Hoje
+            </span>
             <motion.div
               key={knocks}
               initial={{ opacity: 0, y: -20, scale: 0.5 }}
@@ -149,8 +198,8 @@ export default function App() {
           </div>
           <div className="h-[1px] bg-stone-800 w-full my-4 md:my-0"></div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-stone-400 italic">Média diária</span>
-            <span className="text-xs font-mono text-stone-500 uppercase font-bold">4.2 b/min</span>
+            <span className="text-xs text-stone-400 italic">Global</span>
+            <span className="text-xs font-mono text-stone-500 uppercase font-bold text-right leading-tight">Ao Vivo</span>
           </div>
         </div>
 
@@ -230,22 +279,86 @@ export default function App() {
           </div>
         </div>
 
+        {/* Stats Graph Card (Mobile Only full width when active) */}
+        {activeTab === 'stats' && (
+           <div className="order-1 md:order-5 md:col-span-12 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col min-h-[400px]">
+             <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-6">Comparativo Diário</span>
+             
+             {dailyStats.length > 0 ? (
+               <div className="flex-grow w-full h-full min-h-[300px]">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <BarChart data={dailyStats} margin={{ top: 20, right: 30, left: -20, bottom: 5 }}>
+                     <CartesianGrid strokeDasharray="3 3" stroke="#292524" vertical={false} />
+                     <XAxis 
+                        dataKey="date" 
+                        stroke="#78716c" 
+                        fontSize={12} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        dy={10} 
+                     />
+                     <YAxis 
+                        stroke="#78716c" 
+                        fontSize={12} 
+                        tickLine={false} 
+                        axisLine={false} 
+                     />
+                     <Tooltip 
+                        cursor={{fill: '#292524'}}
+                        contentStyle={{ backgroundColor: '#1c1917', border: '1px solid #292524', borderRadius: '8px', color: '#f5f5f4' }}
+                        itemStyle={{ color: '#f5f5f4', fontWeight: 'bold' }}
+                     />
+                     <Bar 
+                        dataKey="totalKnocks" 
+                        name="Batidas" 
+                        fill="#f5f5f4" 
+                        radius={[4, 4, 0, 0]} 
+                        animationDuration={1000}
+                     />
+                   </BarChart>
+                 </ResponsiveContainer>
+               </div>
+             ) : (
+               <div className="flex-grow flex items-center justify-center text-stone-500 text-sm">
+                 Carregando dados ou nenhum dado disponível...
+               </div>
+             )}
+           </div>
+        )}
+
       </div>
 
       {/* Footer Navigation */}
       <footer className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-[0.2em] font-bold text-stone-600 pb-4 md:pb-0">
-        <div className="flex gap-8 w-full md:w-auto justify-center border-t border-stone-800/50 md:border-none pt-6 md:pt-0">
+        <div className="flex gap-4 md:gap-8 w-full md:w-auto justify-center border-t border-stone-800/50 md:border-none pt-6 md:pt-0">
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`${activeTab === 'dashboard' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold`}
+            className={`flex items-center gap-2 ${activeTab === 'dashboard' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold`}
           >
-            Dashboard
+            <LayoutDashboard className="w-4 h-4 md:hidden" />
+            <span className="hidden md:inline">Dashboard</span>
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`${activeTab === 'history' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold md:hidden`}
+            className={`flex items-center gap-2 ${activeTab === 'history' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold md:hidden`}
           >
-            Histórico
+            <Clock className="w-4 h-4 md:hidden" />
+            <span className="hidden md:inline">Histórico</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={`flex items-center gap-2 ${activeTab === 'stats' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold md:hidden`}
+          >
+            <BarChart3 className="w-4 h-4 md:hidden" />
+            <span className="hidden md:inline">Gráficos</span>
+          </button>
+
+          {/* Desktop only links (since desktop shows everything on dashboard except stats which can be toggled) */}
+          <button 
+            onClick={() => setActiveTab('stats')}
+            className={`hidden md:flex items-center gap-2 ${activeTab === 'stats' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold`}
+          >
+            Gráficos
           </button>
         </div>
         <div className="hidden md:block">
