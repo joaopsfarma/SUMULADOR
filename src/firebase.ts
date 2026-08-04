@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
   projectId: "gen-lang-client-0088386857",
@@ -21,15 +21,3 @@ enableMultiTabIndexedDbPersistence(db).catch((err) => {
     console.warn('The current browser does not support all of the features required to enable persistence');
   }
 });
-
-export const initializeStats = async () => {
-  try {
-    const statsRef = doc(db, 'doorStats', 'global');
-    const statsSnap = await getDoc(statsRef);
-    if (!statsSnap.exists()) {
-      await setDoc(statsRef, { totalKnocks: 0 });
-    }
-  } catch (error) {
-    console.warn("Could not initialize stats (likely offline):", error);
-  }
-};

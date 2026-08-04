@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Hand } from 'lucide-react';
-import { doc, onSnapshot, updateDoc, increment, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
-import { db, initializeStats } from './firebase';
+import { doc, onSnapshot, setDoc, increment, collection, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { db } from './firebase';
 
 type HistoryEntry = {
   id: string;
@@ -12,21 +12,36 @@ type HistoryEntry = {
 
 const INTENSITY_LABELS = ['Muito Suave', 'Suave', 'Média', 'Forte', 'Muito Forte'];
 
+const getTodayDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function App() {
   const [knocks, setKnocks] = useState(0);
   const [isKnocking, setIsKnocking] = useState(false);
   const [intensity, setIntensity] = useState<number>(3); // 0 to 4
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [todayId, setTodayId] = useState(getTodayDateString());
 
+  // Check for day change every minute
   useEffect(() => {
-    initializeStats().catch(console.error);
+    const interval = setInterval(() => {
+      setTodayId(getTodayDateString());
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    const statsRef = doc(db, 'doorStats', 'global');
+    const statsRef = doc(db, 'doorStats', todayId);
     const unsubscribeStats = onSnapshot(statsRef, (docSnap) => {
       if (docSnap.exists()) {
         setKnocks(docSnap.data().totalKnocks || 0);
+      } else {
+        setKnocks(0);
       }
     }, (error) => {
       console.warn("Failed to listen to stats:", error);
@@ -49,7 +64,7 @@ export default function App() {
       unsubscribeStats();
       unsubscribeHistory();
     };
-  }, []);
+  }, [todayId]);
 
   const handleKnock = useCallback(() => {
     setIsKnocking(true);
@@ -59,10 +74,11 @@ export default function App() {
     
     // Background Firestore updates (Fire-and-forget to keep UI responsive)
     try {
-      const statsRef = doc(db, 'doorStats', 'global');
-      updateDoc(statsRef, {
+      const currentTodayId = getTodayDateString();
+      const statsRef = doc(db, 'doorStats', currentTodayId);
+      setDoc(statsRef, {
         totalKnocks: increment(1)
-      }).catch(console.error);
+      }, { merge: true }).catch(console.error);
 
       const now = new Date();
       const historyRef = collection(db, 'knockHistory');
@@ -119,7 +135,7 @@ export default function App() {
         {/* Statistics Column */}
         <div className="order-2 md:order-1 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Total de Batidas</span>
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Batidas de Hoje</span>
             <motion.div
               key={knocks}
               initial={{ opacity: 0, y: -20, scale: 0.5 }}
@@ -132,7 +148,7 @@ export default function App() {
           </div>
           <div className="h-[1px] bg-stone-800 w-full my-4 md:my-0"></div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-stone-400 italic">Média global</span>
+            <span className="text-xs text-stone-400 italic">Média diária</span>
             <span className="text-xs font-mono text-stone-500 uppercase font-bold">4.2 b/min</span>
           </div>
         </div>
