@@ -26,6 +26,7 @@ export default function App() {
   const [intensity, setIntensity] = useState<number>(3); // 0 to 4
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [todayId, setTodayId] = useState(getTodayDateString());
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history'>('dashboard');
 
   // Check for day change every minute
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function App() {
     });
 
     const historyRef = collection(db, 'knockHistory');
-    const q = query(historyRef, orderBy('timestamp', 'desc'), limit(5));
+    const q = query(historyRef, orderBy('timestamp', 'desc'), limit(20));
     const unsubscribeHistory = onSnapshot(q, (snapshot) => {
       const historyData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -133,7 +134,7 @@ export default function App() {
       <div className="grid grid-cols-1 md:grid-cols-12 md:grid-rows-6 gap-6 flex-grow">
         
         {/* Statistics Column */}
-        <div className="order-2 md:order-1 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-between">
+        <div className={`order-2 md:order-1 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex-col justify-between ${activeTab === 'dashboard' ? 'flex' : 'hidden md:flex'}`}>
           <div>
             <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Batidas de Hoje</span>
             <motion.div
@@ -154,7 +155,7 @@ export default function App() {
         </div>
 
         {/* Main Interaction Card (The Door) */}
-        <div className="order-1 md:order-2 md:col-span-6 md:row-span-6 bg-stone-900 border-2 border-stone-800 rounded-[32px] md:rounded-[40px] relative overflow-hidden flex flex-col items-center justify-center group min-h-[400px] py-10 md:py-0">
+        <div className={`order-1 md:order-2 md:col-span-6 md:row-span-6 bg-stone-900 border-2 border-stone-800 rounded-[32px] md:rounded-[40px] relative overflow-hidden flex-col items-center justify-center group min-h-[400px] py-10 md:py-0 ${activeTab === 'dashboard' ? 'flex' : 'hidden md:flex'}`}>
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #ffffff 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
           
           <motion.button
@@ -183,18 +184,18 @@ export default function App() {
         </div>
 
         {/* History/Log Card */}
-        <div className="order-4 md:order-3 md:col-span-3 md:row-span-6 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col">
-          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-4">Registro Recente</span>
-          <div className="space-y-4 flex-grow overflow-hidden flex flex-col">
-            {history.map((entry) => (
+        <div className={`order-4 md:order-3 md:col-span-3 md:row-span-6 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex-col ${activeTab === 'history' ? 'flex' : 'hidden md:flex'}`}>
+          <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-4">Registro Histórico</span>
+          <div className="space-y-4 flex-grow overflow-y-auto flex flex-col pr-2 scrollbar-thin scrollbar-thumb-stone-800 scrollbar-track-transparent">
+            {history.slice(0, activeTab === 'history' ? 20 : 5).map((entry) => (
               <div key={entry.id} className="flex justify-between items-center text-xs border-b border-stone-800/50 pb-2">
                 <span className="text-stone-300">{entry.intensityLabel}</span>
                 <span className="text-stone-500 font-mono">{entry.time}</span>
               </div>
             ))}
             
-            {/* Empty slots for visual consistency */}
-            {Array.from({ length: Math.max(0, 5 - history.length) }).map((_, i) => (
+            {/* Empty slots for visual consistency only on dashboard */}
+            {activeTab === 'dashboard' && Array.from({ length: Math.max(0, 5 - history.length) }).map((_, i) => (
               <div key={`empty-${i}`} className="flex justify-between items-center text-xs border-b border-stone-800/50 pb-2 opacity-30">
                 <span className="text-stone-300 italic">...vazio...</span>
                 <span className="text-stone-500 font-mono">--:--:--</span>
@@ -204,7 +205,7 @@ export default function App() {
         </div>
 
         {/* Settings/Mode Card */}
-        <div className="order-3 md:order-4 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex flex-col justify-center">
+        <div className={`order-3 md:order-4 md:col-span-3 md:row-span-3 bg-stone-900/50 border border-stone-800 rounded-3xl p-6 flex-col justify-center ${activeTab === 'dashboard' ? 'flex' : 'hidden md:flex'}`}>
           <div>
             <span className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">Intensidade</span>
             <div className="flex gap-2 mt-4 justify-between items-end h-12">
@@ -232,13 +233,22 @@ export default function App() {
       </div>
 
       {/* Footer Navigation */}
-      <footer className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-[0.2em] font-bold text-stone-600">
-        <div className="flex gap-8">
-          <span className="text-stone-100 cursor-pointer hover:text-white transition-colors">Dashboard</span>
-          <span className="hover:text-stone-400 cursor-pointer transition-colors">Acoustics</span>
-          <span className="hover:text-stone-400 cursor-pointer transition-colors">History</span>
+      <footer className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-[0.2em] font-bold text-stone-600 pb-4 md:pb-0">
+        <div className="flex gap-8 w-full md:w-auto justify-center border-t border-stone-800/50 md:border-none pt-6 md:pt-0">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`${activeTab === 'dashboard' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold`}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('history')}
+            className={`${activeTab === 'history' ? 'text-stone-100' : 'text-stone-600 hover:text-stone-400'} transition-colors uppercase tracking-[0.2em] font-bold md:hidden`}
+          >
+            Histórico
+          </button>
         </div>
-        <div>
+        <div className="hidden md:block">
           EST. 2024 &copy; KNOCK SIM LABS
         </div>
       </footer>
